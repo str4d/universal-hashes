@@ -1,32 +1,33 @@
-#![feature(test)]
+//! Poly1305 benchmark (using criterion)
 
-extern crate test;
-
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion_cycles_per_byte::CyclesPerByte;
 use poly1305::{
     universal_hash::{NewUniversalHash, UniversalHash},
     Poly1305,
 };
-use test::Bencher;
 
-// TODO(tarcieri): move this into the `universal-hash` crate
-macro_rules! bench {
-    ($name:ident, $bs:expr) => {
-        #[bench]
-        fn $name(b: &mut Bencher) {
-            let key = Default::default();
-            let mut m = Poly1305::new(&key);
-            let data = [0; $bs];
+fn bench(c: &mut Criterion<CyclesPerByte>) {
+    let mut group = c.benchmark_group("poly1305");
 
-            b.iter(|| {
-                m.update_padded(&data);
-            });
+    for size in &[10, 100, 1000, 10000] {
+        let buf = vec![0u8; *size];
 
-            b.bytes = $bs;
-        }
-    };
+        group.throughput(Throughput::Bytes(*size as u64));
+
+        group.bench_function(BenchmarkId::new("update_padded", size), |b| {
+            let mut m = Poly1305::new(&Default::default());
+            b.iter(|| m.update_padded(&buf));
+        });
+    }
+
+    group.finish();
 }
 
-bench!(bench1_10, 10);
-bench!(bench2_100, 100);
-bench!(bench3_1000, 1000);
-bench!(bench3_10000, 10000);
+criterion_group!(
+    name = benches;
+    config = Criterion::default().with_measurement(CyclesPerByte);
+    targets = bench
+);
+
+criterion_main!(benches);
