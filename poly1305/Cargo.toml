@@ -21,6 +21,7 @@ criterion-cycles-per-byte = "0.1.1"
 hex-literal = "0.2"
 
 [features]
+autodetect = ["std"]
 std = ["universal-hash/std"]
 
 [[bench]]

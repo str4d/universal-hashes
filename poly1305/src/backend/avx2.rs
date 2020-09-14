@@ -44,7 +44,13 @@ pub(crate) struct State {
 
 impl State {
     /// Initialize Poly1305 state with the given key
+    #[cfg(target_feature = "avx2")]
     pub(crate) fn new(key: &Key) -> Self {
+        unsafe { Self::new_unchecked(key) }
+    }
+
+    #[target_feature(enable = "avx2")]
+    pub(crate) unsafe fn new_unchecked(key: &Key) -> Self {
         // Prepare addition key and polynomial key.
         let (k, r1) = prepare_keys(key);
 
@@ -68,7 +74,13 @@ impl State {
         self.num_cached_blocks = 0;
     }
 
+    #[cfg(target_feature = "avx2")]
     pub(crate) fn compute_block(&mut self, block: &Block, partial: bool) {
+        unsafe { self.compute_block_unchecked(block, partial) }
+    }
+
+    #[target_feature(enable = "avx2")]
+    pub(crate) unsafe fn compute_block_unchecked(&mut self, block: &Block, partial: bool) {
         // We can cache a single partial block.
         if partial {
             assert!(self.partial_block.is_none());
@@ -102,7 +114,13 @@ impl State {
         }
     }
 
+    #[cfg(target_feature = "avx2")]
     pub(crate) fn finalize(&mut self) -> Tag {
+        unsafe { self.finalize_unchecked() }
+    }
+
+    #[target_feature(enable = "avx2")]
+    pub(crate) unsafe fn finalize_unchecked(&mut self) -> Tag {
         assert!(self.num_cached_blocks < 4);
         let mut data = &self.cached_blocks[..];
 
